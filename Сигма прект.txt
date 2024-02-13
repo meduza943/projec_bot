@@ -1,0 +1,97 @@
+import threading
+import telebot
+
+TOKEN = "6928749424:AAGxPY_CD2SCnAFPON72CtwfLEQONNUxDfU"
+bot = telebot.TeleBot(token = TOKEN)# вставляем таблетку для начала работы бота
+
+
+@bot.message_handler(commands=['start'])# прописываем команду, которая при  начале работы бота будет писать рпиветсвие
+def start(message):
+    bot.send_message(message.chat.id,
+                     'Привет! Я бот, который напоминает о приеме лекарств.',
+                     reply_markup=get_keyboard())
+
+
+@bot.callback_query_handler(func=lambda x: x.data == 'set timer')# приводим примеры, для ввода времени
+def pre_set_tiner(query):
+    message = query.message
+    bot.send_message(message.chat.id,
+                     'Введите время для установки таймера.\n'
+                     'Пример ввода:\n'
+                     '1. 10 секунд\n'
+                     '2. 2 мин\n'
+                     '3. 10 час\n')
+    bot.register_next_step_handler(message, set_time)
+
+
+def set_time(message):
+    times = {
+        'сек: 0,'
+        'мин: 0,'
+        'час: 0,'
+    }
+
+    quantity, type_time = message.text.split()
+
+    if type_time  not in time.keys(): # прописываем ошибки
+        bot.send_message(message.chat.id,
+                         'Вы ввели неправильный тип времению')
+
+    if not quantity.isdigit(): #прописываем ошибки
+        bot.send_message(message.chat_id,
+                         'Вы ввели не число')
+
+    times[type_time] = int(quantity)
+
+
+    pre_set_text(message, times)
+
+
+def pre_set_text(message, times): # в этой функции вы пишите какие таблетки вам надо принимать
+    bot.send_message(message.chat.id,'Введите текст , '
+                                     'который отправится к вам в чат после истечения времени.')
+    bot.register_next_step_handler(message, set_text, times)
+
+
+def set_text(message, times): # прописываем логику для самого таймера
+    cur_date = datetime.datetime.now()
+
+    timedelta = datetime.timedelta(days=0, seconds=times['сек'],
+                                   minutes=times['мин'], hours=times['час'])
+
+    cur_date += timedelta
+    user[message.chat.id] = (cur_date, message.text) # привязываем к кортежу данные
+    bot.send_message(message.chat.id,'Спасибо , через заданое время к вам придёт уведомление!')
+
+
+def check_date(): # создаем базу данных, которая сама после истечения таймера будет удаляться
+    now_date = datetime.datetime.now()
+    users_to_delete = []
+    for chat_id, value in users.items():
+        users_date = value[0]
+        msg = value[1]
+        if now_date >= users_date:
+            bot.send_message(chat_id, msg)
+            users_to_delete.append(chat_id)
+    for user in users_to_delete:
+        del users[user]
+    threading.Timer(1, check_date).start()
+
+
+def get_keyboard(): # прописываем команду , которая будет выводить таймер
+    keyboard = telebot.types.InlineKeyboardMarkup
+    button = telebot.types.InlineKeyboardButton('Установить таймер', callback_data='set timer')
+    keyboard.add(button)
+    return keyboard
+
+
+if __name__ == '__main__': # запускаем программу
+    pass
+else:
+    users = {} #создаем кортеж
+    while True:
+        try:
+            check_date()
+            bot.polling()
+        except:
+            print('Что-то сломалось, ........Перезагрузка')
